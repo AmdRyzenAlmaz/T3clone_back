@@ -5,7 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.115.12",
+    "bcrypt>=4.3.0",
+    "dotenv>=0.9.9",
+    "fastapi[standard]>=0.115.12",
+    "psycopg2>=2.9.10",
+    "pyjwt>=2.10.1",
     "sqlmodel>=0.0.24",
     "websockets>=15.0.1",
 ]
