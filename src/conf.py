@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 CONNECTION_ID_LEN = 15
 SQL_VERBOSE = True
+ENCRYPTION_ALG = "HS256"
 _ENGINE: None | Engine = None
 
 manager = ConnectionManager()

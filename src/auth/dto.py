@@ -11,3 +11,7 @@ class SignUpDto(BaseModel):
     email: EmailStr
     password: str
     confirm_password: str
+
+
+class RefreshDto(BaseModel):
+    refresh_token: str
