@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import (
     Depends,
     WebSocket,
@@ -7,10 +7,13 @@ from fastapi import (
     WebSocketException,
 )
 import fastapi
-from auth import repository
+import pydantic
+from auth import get_user_by_id
 from models import User
 import utils
-from conf import manager
+from ws import manager
+
+import clients
 
 ws_router = fastapi.APIRouter()
 
@@ -34,7 +37,7 @@ async def get_current_websocket_user(websocket: WebSocket) -> User:
                 code=status.WS_1008_POLICY_VIOLATION,
             )
 
-        user = repository.get_user_by_id(engine, payload["sub"])
+        user = get_user_by_id(engine, payload["sub"])
         if not user:
             raise WebSocketException(
                 reason="User not found",
@@ -47,15 +50,26 @@ async def get_current_websocket_user(websocket: WebSocket) -> User:
         raise WebSocketException(reason=str(e), code=status.WS_1008_POLICY_VIOLATION)
 
 
+class Request(pydantic.BaseModel):
+    type: str
+    chat_history: List[clients.Message]
+    message: str
+
+
 @ws_router.websocket("/ws", dependencies=[])
 async def ws_root(
     websocket: WebSocket, user: Annotated[User, Depends(get_current_websocket_user)]
 ):
     connection_id = utils.gen_connection_id()
     await manager.on_connect(websocket, connection_id)
+    clietn = clients.Client()
     try:
         while True:
-            data = await websocket.receive_text()
-            print(data)
+            data = await websocket.receive_json()
+            req = Request.model_validate(data)
+            await clietn.prompt(req.chat_history, req.message)
+            async for chunk in clietn.response_stream():
+                await websocket.send_json(chunk.to_dict())
+
     except WebSocketDisconnect:
         manager.on_disconnect(connection_id)

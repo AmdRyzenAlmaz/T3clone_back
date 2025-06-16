@@ -12,3 +12,6 @@ class ConnectionManager:
 
     def on_disconnect(self, connection_id: str):
         self._active_connections.pop(connection_id)
+
+
+manager = ConnectionManager()

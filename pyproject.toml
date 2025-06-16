@@ -8,8 +8,10 @@ dependencies = [
     "bcrypt>=4.3.0",
     "dotenv>=0.9.9",
     "fastapi[standard]>=0.115.12",
+    "openai>=1.86.0",
     "psycopg2>=2.9.10",
     "pyjwt>=2.10.1",
     "sqlmodel>=0.0.24",
+    "uvicorn>=0.34.3",
     "websockets>=15.0.1",
 ]

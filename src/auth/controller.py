@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 import fastapi
 import bcrypt
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from auth import dto, repository
 import models

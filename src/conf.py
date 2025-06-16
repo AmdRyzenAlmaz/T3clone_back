@@ -1,7 +1,6 @@
 import os
 from sqlalchemy import Engine
 from sqlmodel import SQLModel, create_engine
-from connection_manager import ConnectionManager
 from dotenv import load_dotenv
 
 
@@ -10,7 +9,9 @@ SQL_VERBOSE = True
 ENCRYPTION_ALG = "HS256"
 _ENGINE: None | Engine = None
 
-manager = ConnectionManager()
+
+def get_deepseek_api_key() -> str:
+    return get_from_env("DEEPSEEK_API_KEY")
 
 
 def get_jwt_secret() -> str:
