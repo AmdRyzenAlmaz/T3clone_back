@@ -43,7 +43,7 @@ async def sign_up(request: Request, user: dto.SignUpDto):
     found_user_by_email = repository.get_user_by_email(engine, user.email)
     found_user_by_username = repository.get_user_by_username(engine, user.username)
 
-    if found_user_by_email is not None or found_user_by_username is None:
+    if found_user_by_email is not None or found_user_by_username is not None:
         raise HTTPException(
             status_code=fastapi.status.HTTP_409_CONFLICT,
             detail={
