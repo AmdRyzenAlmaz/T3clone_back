@@ -17,6 +17,16 @@ services:
     restart: unless-stopped
     tty: true
     stdin_open: true
+
+  backend:
+    build: .
+    env_file: "./.env"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
 volumes:
   t3_data:
 
