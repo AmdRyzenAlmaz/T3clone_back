@@ -12,6 +12,15 @@ router = APIRouter()
 
 @router.post("/sign-in")
 async def sign_in(request: Request, user: dto.SignInDto):
+    if request.client is None:
+        raise HTTPException(
+            status_code=fastapi.status.HTTP_406_NOT_ACCEPTABLE,
+            detail={
+                "success": False,
+                "data": "NO CLIENT, MAKE A REQUEST FROM A NORMAL CLIENT",
+            },
+        )
+    issuer_ip = f"{request.client.host}"
     engine = request.app.state.engine
     found_user = repository.get_user_by_email(engine, user.email)
 
@@ -26,8 +35,8 @@ async def sign_in(request: Request, user: dto.SignInDto):
             status_code=fastapi.status.HTTP_403_FORBIDDEN,
             detail={"success": False, "data": "password incorrect"},
         )
-    access_token = utils.gen_jwt(found_user.id, 1.0)
-    refresh_token = utils.gen_jwt(found_user.id, 7.0)
+    access_token = utils.gen_jwt(found_user.id, issuer_ip, 1.0)
+    refresh_token = utils.gen_jwt(found_user.id, issuer_ip, 7.0)
     return {
         "success": True,
         "data": {
@@ -39,6 +48,15 @@ async def sign_in(request: Request, user: dto.SignInDto):
 
 @router.post("/sign-up")
 async def sign_up(request: Request, user: dto.SignUpDto):
+    if request.client is None:
+        raise HTTPException(
+            status_code=fastapi.status.HTTP_406_NOT_ACCEPTABLE,
+            detail={
+                "success": False,
+                "data": "NO CLIENT, MAKE A REQUEST FROM A NORMAL CLIENT",
+            },
+        )
+    issuer_ip = f"{request.client.host}"
     engine = request.app.state.engine
     found_user_by_email = repository.get_user_by_email(engine, user.email)
     found_user_by_username = repository.get_user_by_username(engine, user.username)
@@ -75,8 +93,8 @@ async def sign_up(request: Request, user: dto.SignUpDto):
             detail="internal server error",
         )
 
-    access_token = utils.gen_jwt(inserted_user.id, 1.0)
-    refresh_token = utils.gen_jwt(inserted_user.id, 7.0)
+    access_token = utils.gen_jwt(inserted_user.id, issuer_ip, 1.0)
+    refresh_token = utils.gen_jwt(inserted_user.id, issuer_ip, 7.0)
     return {
         "success": True,
         "data": {
@@ -88,8 +106,17 @@ async def sign_up(request: Request, user: dto.SignUpDto):
 
 @router.post("/refresh")
 async def refresh(request: Request, refresh_dto: dto.RefreshDto):
+    if request.client is None:
+        raise HTTPException(
+            status_code=fastapi.status.HTTP_406_NOT_ACCEPTABLE,
+            detail={
+                "success": False,
+                "data": "NO CLIENT, MAKE A REQUEST FROM A NORMAL CLIENT",
+            },
+        )
+    issuer_ip = f"{request.client.host}"
     engine = request.app.state.engine
-    refresh_claims = utils.decode_jwt(refresh_dto.refresh_token)
+    refresh_claims = utils.decode_jwt(refresh_dto.refresh_token, issuer_ip)
     if refresh_claims is None or refresh_claims.get("sub") is None:
         raise HTTPException(
             status_code=fastapi.status.HTTP_400_BAD_REQUEST,
@@ -103,8 +130,8 @@ async def refresh(request: Request, refresh_dto: dto.RefreshDto):
             status_code=fastapi.status.HTTP_404_NOT_FOUND,
             detail={"success": False, "data": "user not found"},
         )
-    access_token = utils.gen_jwt(found_user.id, 1.0)
-    refresh_token = utils.gen_jwt(found_user.id, 7.0)
+    access_token = utils.gen_jwt(found_user.id, issuer_ip, 1.0)
+    refresh_token = utils.gen_jwt(found_user.id, issuer_ip, 7.0)
     return {
         "success": True,
         "data": {

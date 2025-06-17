@@ -15,10 +15,11 @@ def gen_connection_id() -> str:
     )
 
 
-def gen_jwt(user_id: int, days_to_live: float) -> str:
+def gen_jwt(user_id: int, issuer_ip: str, days_to_live: float) -> str:
     token = jwt.encode(
         {
             "sub": str(user_id),
+            "iss": issuer_ip,
             "exp": datetime.now(tz=timezone.utc) + timedelta(days=days_to_live),
         },
         get_jwt_secret(),
@@ -27,12 +28,13 @@ def gen_jwt(user_id: int, days_to_live: float) -> str:
     return token
 
 
-def decode_jwt(jw_token: str) -> Dict[str, Any] | None:
+def decode_jwt(jw_token: str, issuer_ip: str) -> Dict[str, Any] | None:
     try:
         claims = jwt.decode(
             jw_token,
             get_jwt_secret(),
             options={"require": ["exp"]},
+            issuer=issuer_ip,
             verify=True,
             algorithms=ENCRYPTION_ALG,
         )

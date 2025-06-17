@@ -19,21 +19,26 @@ ws_router = fastapi.APIRouter()
 
 
 async def get_current_websocket_user(websocket: WebSocket) -> User:
+    if websocket.client is None:
+        raise WebSocketException(
+            reason="NO CLIENT, MAKE A REQUEST FROM A NORMAL CLIENT",
+            code=status.WS_1008_POLICY_VIOLATION,
+        )
+    issuer_ip = f"{websocket.client.host}"
     engine = websocket.app.state.engine
-    authorization = websocket.headers.get("authorization")
-    if not authorization or not authorization.startswith("Bearer "):
+    token = websocket.query_params.get("token")
+    if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         raise WebSocketException(
-            reason="Missing or invalid Authorization header",
+            reason="Missing token query parameter",
             code=status.WS_1008_POLICY_VIOLATION,
         )
 
-    token = authorization.replace("Bearer ", "")
     try:
-        payload = utils.decode_jwt(token)
+        payload = utils.decode_jwt(token, issuer_ip)
         if payload is None or payload.get("sub") is None:
             raise WebSocketException(
-                reason="Invalid Authorization header",
+                reason="Invalid token",
                 code=status.WS_1008_POLICY_VIOLATION,
             )
 
