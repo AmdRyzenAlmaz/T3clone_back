@@ -1,4 +1,5 @@
 import os
+from typing import List
 from sqlalchemy import Engine
 from sqlmodel import SQLModel, create_engine
 from dotenv import load_dotenv
@@ -9,9 +10,28 @@ SQL_VERBOSE = True
 ENCRYPTION_ALG = "HS256"
 _ENGINE: None | Engine = None
 
+SYSTEM_PROMPT = """
+you are a helpfull assistant
+"""
 
-def get_deepseek_api_key() -> str:
-    return get_from_env("DEEPSEEK_API_KEY")
+
+def get_list_of_models() -> List[str]:
+    lst = os.getenv("MODELS", "")
+    if lst == "":
+        return []
+
+    return lst.split(",")
+
+
+def get_api_key() -> str:
+    return get_from_env("API_KEY")
+
+
+def get_llm_endpoint() -> str | None:
+    endpoint = os.getenv("LLM_ENDPOINT", "")
+    if endpoint == "":
+        return None
+    return endpoint
 
 
 def get_jwt_secret() -> str:

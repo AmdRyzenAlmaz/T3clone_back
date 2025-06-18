@@ -11,9 +11,10 @@ import pydantic
 from auth import get_user_by_id
 from models import User
 import utils
-from ws import manager
+from ws import manager, new_message, create_chat
 
 import clients
+from ws.send_chats import send_existing_chats
 
 ws_router = fastapi.APIRouter()
 
@@ -55,26 +56,53 @@ async def get_current_websocket_user(websocket: WebSocket) -> User:
         raise WebSocketException(reason=str(e), code=status.WS_1008_POLICY_VIOLATION)
 
 
-class Request(pydantic.BaseModel):
-    type: str
-    chat_history: List[clients.Message]
-    message: str
-
-
 @ws_router.websocket("/ws", dependencies=[])
 async def ws_root(
     websocket: WebSocket, user: Annotated[User, Depends(get_current_websocket_user)]
 ):
+    engine = websocket.app.state.engine
     connection_id = utils.gen_connection_id()
-    await manager.on_connect(websocket, connection_id)
-    clietn = clients.Client()
+    if user.id is None:
+        raise WebSocketException(
+            reason="User not found",
+            code=status.WS_1008_POLICY_VIOLATION,
+        )
+
+    await manager.on_connect(websocket, user.id, connection_id)
+    await send_existing_chats(user.id, engine, manager.get_connections(user.id))
     try:
         while True:
+            exception1 = None
+            exception2 = None
             data = await websocket.receive_json()
-            req = Request.model_validate(data)
-            await clietn.prompt(req.chat_history, req.message)
-            async for chunk in clietn.response_stream():
-                await websocket.send_json(chunk.to_dict())
+            try:
+                req = create_chat.Request.model_validate(data)
+                await create_chat.create_new_chat(
+                    engine, req, manager.get_connections(user.id), user.id
+                )
+                return
+            except Exception as e:
+                print("AAAAAAA")
+                print(e)
+                exception1 = WebSocketException(
+                    reason="validation error",
+                    code=status.WS_1002_PROTOCOL_ERROR,
+                )
+            try:
+                req = new_message.Request.model_validate(data)
+                await new_message.new_message(
+                    engine, req, manager.get_connections(user.id)
+                )
+                return
+            except Exception as e:
+                print("BBBBBBB")
+                print(e)
+                exception2 = WebSocketException(
+                    reason="validation error",
+                    code=status.WS_1002_PROTOCOL_ERROR,
+                )
+            if exception1 is not None and exception2 is not None:
+                raise exception1
 
     except WebSocketDisconnect:
-        manager.on_disconnect(connection_id)
+        await manager.on_disconnect(connection_id, user.id)
